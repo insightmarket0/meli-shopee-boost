@@ -13,14 +13,35 @@ import {
 } from "@/components/ui/select";
 
 const Index = () => {
+  const today = new Date();
+  const formattedDate = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  }).format(today);
+  const capitalizedDate = formattedDate
+    .split(" ")
+    .map((word) =>
+      word
+        .split("-")
+        .map((segment) =>
+          segment ? segment.charAt(0).toUpperCase() + segment.slice(1) : segment,
+        )
+        .join("-"),
+    )
+    .join(" ");
+
   return (
     <div className="min-h-screen bg-background">
       <div className="p-8 space-y-8 animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Visão geral do seu negócio em tempo real</p>
+            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+              Olá, Vendedor!
+              <span role="img" aria-label="aceno">👋</span>
+            </h1>
+            <p className="text-muted-foreground mt-1">{capitalizedDate}</p>
           </div>
           <div className="flex gap-3">
             <Select defaultValue="todos">

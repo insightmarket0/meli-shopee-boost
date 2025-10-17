@@ -13,7 +13,7 @@ import {
 
 const menuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Projeção de Envios", url: "/envios", icon: Package },
+  { title: "Projeção de Envios full", url: "/envios", icon: Package },
   { title: "Projeção de Estoque", url: "/estoque", icon: TrendingUp },
   { title: "IA Assistente", url: "/ia", icon: Bot },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
@@ -28,7 +28,7 @@ export function AppSidebar() {
             <TrendingUp className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-sidebar-foreground">MarketSync</h2>
+            <h2 className="text-lg font-bold text-sidebar-foreground">INSIGHT MARKET</h2>
             <p className="text-xs text-sidebar-foreground/60">Gestão Inteligente</p>
           </div>
         </div>

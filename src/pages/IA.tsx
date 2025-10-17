@@ -125,8 +125,8 @@ const IA = () => {
               <Sparkles className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">IA Assistente</h1>
-              <p className="text-xs text-muted-foreground">Insights em tempo real</p>
+              <h1 className="text-2xl font-bold text-foreground">Lia da InsightMarket</h1>
+              <p className="text-xs text-muted-foreground">Oi! Eu sou a Lia, sua parceira de vendas aqui👋</p>
             </div>
           </div>
           <Button
