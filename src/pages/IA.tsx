@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Send, Bot, User, Sparkles } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Send, Bot, User, Sparkles, Copy, ThumbsUp, ThumbsDown, RotateCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,9 +31,20 @@ const IA = () => {
     },
   ]);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSendMessage = () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: messages.length + 1,
@@ -43,6 +54,8 @@ const IA = () => {
     };
 
     setMessages([...messages, userMessage]);
+    setInput("");
+    setIsLoading(true);
 
     // Simulate AI response
     setTimeout(() => {
@@ -53,9 +66,8 @@ const IA = () => {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiResponse]);
-    }, 1000);
-
-    setInput("");
+      setIsLoading(false);
+    }, 1500);
   };
 
   const getAIResponse = (question: string): string => {
@@ -85,39 +97,64 @@ const IA = () => {
   };
 
   const handleSuggestedQuestion = (question: string) => {
+    if (isLoading) return;
     setInput(question);
+    setTimeout(() => handleSendMessage(), 100);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const regenerateResponse = () => {
+    if (messages.length < 2 || isLoading) return;
+    const lastUserMessage = [...messages].reverse().find(m => m.role === "user");
+    if (lastUserMessage) {
+      setInput(lastUserMessage.content);
+      handleSendMessage();
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background p-8 animate-fade-in">
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2">
-            <div className="h-12 w-12 rounded-full gradient-primary flex items-center justify-center">
-              <Sparkles className="h-6 w-6 text-primary-foreground" />
+    <div className="min-h-screen bg-background p-4 md:p-8 animate-fade-in">
+      <div className="max-w-6xl mx-auto space-y-4">
+        {/* Header - Mais Compacto */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
+              <Sparkles className="h-5 w-5 text-primary-foreground" />
             </div>
-            <h1 className="text-3xl font-bold text-foreground">IA Assistente</h1>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">IA Assistente</h1>
+              <p className="text-xs text-muted-foreground">Insights em tempo real</p>
+            </div>
           </div>
-          <p className="text-muted-foreground">
-            Peça insights em tempo real sobre suas vendas e métricas
-          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={regenerateResponse}
+            disabled={isLoading || messages.length < 2}
+            className="gap-2"
+          >
+            <RotateCw className="h-3 w-3" />
+            Regenerar
+          </Button>
         </div>
 
-        {/* Chat Area */}
-        <Card className="shadow-elevated animate-slide-up" style={{ animationDelay: "0.1s" }}>
+        {/* Chat Area - Otimizado */}
+        <Card className="shadow-elevated animate-slide-up border-primary/10" style={{ animationDelay: "0.1s" }}>
           <CardContent className="p-0">
-            <ScrollArea className="h-[500px] p-6">
-              <div className="space-y-6">
-                {messages.map((message) => (
+            <ScrollArea className="h-[calc(100vh-280px)] min-h-[400px]" ref={scrollAreaRef}>
+              <div className="space-y-4 p-4 md:p-6">
+                {messages.map((message, index) => (
                   <div
                     key={message.id}
-                    className={`flex gap-3 ${
+                    className={`flex gap-2 md:gap-3 animate-fade-in ${
                       message.role === "user" ? "flex-row-reverse" : "flex-row"
                     }`}
                   >
                     <div
-                      className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${
                         message.role === "user"
                           ? "bg-primary text-primary-foreground"
                           : "gradient-primary text-primary-foreground"
@@ -130,48 +167,80 @@ const IA = () => {
                       )}
                     </div>
                     <div
-                      className={`flex-1 max-w-[80%] space-y-1 ${
+                      className={`flex-1 max-w-[85%] md:max-w-[80%] space-y-2 ${
                         message.role === "user" ? "items-end" : "items-start"
                       }`}
                     >
                       <div
-                        className={`rounded-lg p-4 ${
+                        className={`rounded-2xl p-3 md:p-4 transition-all hover:shadow-md ${
                           message.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-foreground"
+                            ? "bg-primary text-primary-foreground ml-auto"
+                            : "bg-muted text-foreground border border-border/50"
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-line">{message.content}</p>
+                        <p className="text-sm leading-relaxed whitespace-pre-line">{message.content}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground px-2">
-                        {message.timestamp.toLocaleTimeString("pt-BR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
+                      <div className={`flex items-center gap-2 px-2 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                        <p className="text-xs text-muted-foreground">
+                          {message.timestamp.toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                        {message.role === "assistant" && index > 0 && (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 hover:bg-primary/10"
+                              onClick={() => copyToClipboard(message.content)}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 hover:bg-green-500/10"
+                            >
+                              <ThumbsUp className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 hover:bg-red-500/10"
+                            >
+                              <ThumbsDown className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
                 {messages.length <= 1 && (
-                  <div className="flex gap-3">
-                    <div className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 gradient-primary text-primary-foreground">
+                  <div className="flex gap-2 md:gap-3 animate-slide-up" style={{ animationDelay: "0.2s" }}>
+                    <div className="h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 gradient-primary text-primary-foreground shadow-sm">
                       <Bot className="h-4 w-4" />
                     </div>
-                    <div className="flex-1 max-w-[80%] space-y-2">
-                      <div className="rounded-lg p-4 bg-muted text-foreground space-y-3">
-                        <p className="text-sm font-medium text-muted-foreground">
-                          Perguntas sugeridas
-                        </p>
-                        <div className="flex flex-wrap gap-2">
+                    <div className="flex-1 max-w-[85%] md:max-w-[80%] space-y-2">
+                      <div className="rounded-2xl p-3 md:p-4 bg-primary/5 border border-primary/10 text-foreground space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          <p className="text-xs font-semibold text-primary">
+                            Perguntas Sugeridas
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2">
                           {suggestedQuestions.map((question, idx) => (
                             <Button
                               key={idx}
                               variant="outline"
                               size="sm"
-                              className="h-auto px-3 py-2 text-xs leading-relaxed justify-start text-left"
+                              disabled={isLoading}
+                              className="h-auto px-3 py-2.5 text-xs leading-relaxed justify-start text-left hover:bg-primary/10 hover:border-primary/30 transition-all"
                               onClick={() => handleSuggestedQuestion(question)}
                             >
-                              {question}
+                              <span className="line-clamp-2">{question}</span>
                             </Button>
                           ))}
                         </div>
@@ -179,40 +248,103 @@ const IA = () => {
                     </div>
                   </div>
                 )}
+                
+                {/* Loading Indicator */}
+                {isLoading && (
+                  <div className="flex gap-2 md:gap-3 animate-fade-in">
+                    <div className="h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 gradient-primary text-primary-foreground shadow-sm">
+                      <Bot className="h-4 w-4 animate-pulse" />
+                    </div>
+                    <div className="flex-1 max-w-[85%] md:max-w-[80%]">
+                      <div className="rounded-2xl p-3 md:p-4 bg-muted border border-border/50">
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "0s" }} />
+                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
+                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
 
-            {/* Input Area */}
-            <div className="border-t p-4">
+            {/* Input Area - Melhorado */}
+            <div className="border-t bg-muted/30 p-3 md:p-4">
               <div className="flex gap-2">
                 <Input
-                  placeholder="Faça sua pergunta..."
+                  placeholder="Digite sua pergunta aqui..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                  className="flex-1"
+                  onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+                  disabled={isLoading}
+                  className="flex-1 bg-background border-primary/20 focus-visible:ring-primary/30 rounded-xl"
                 />
                 <Button
                   onClick={handleSendMessage}
-                  disabled={!input.trim()}
-                  className="gradient-primary"
+                  disabled={!input.trim() || isLoading}
+                  className="gradient-primary rounded-xl shadow-md hover:shadow-lg transition-all px-4 md:px-6"
                 >
-                  <Send className="h-4 w-4" />
+                  {isLoading ? (
+                    <RotateCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Pressione Enter para enviar • Shift + Enter para nova linha
+              </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Info Card */}
-        <Card className="bg-primary/5 border-primary/20 animate-slide-up" style={{ animationDelay: "0.2s" }}>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground text-center">
-              💡 A IA tem acesso a todos os seus dados de vendas, estoque, produtos e finanças em
-              tempo real
-            </p>
-          </CardContent>
-        </Card>
+        {/* Info Cards - Grid Compacto */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 animate-slide-up" style={{ animationDelay: "0.2s" }}>
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:shadow-md transition-all">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                </div>
+                <p className="text-xs font-semibold text-foreground">Dados em Tempo Real</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Acesso instantâneo a vendas, estoque e métricas
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20 hover:shadow-md transition-all">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-8 w-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <Bot className="h-4 w-4 text-blue-600" />
+                </div>
+                <p className="text-xs font-semibold text-foreground">IA Inteligente</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Análises preditivas e recomendações personalizadas
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20 hover:shadow-md transition-all">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-8 w-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <ThumbsUp className="h-4 w-4 text-green-600" />
+                </div>
+                <p className="text-xs font-semibold text-foreground">100% Seguro</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Suas informações são privadas e protegidas
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
