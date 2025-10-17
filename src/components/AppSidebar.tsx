@@ -24,9 +24,11 @@ export function AppSidebar() {
     <Sidebar className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border p-6">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <TrendingUp className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <img
+            src="/insight-logo.png"
+            alt="Insight Market logo"
+            className="h-8 w-8 rounded-lg object-contain"
+          />
           <div>
             <h2 className="text-lg font-bold text-sidebar-foreground">INSIGHT MARKET</h2>
             <p className="text-xs text-sidebar-foreground/60">Gestão Inteligente</p>
