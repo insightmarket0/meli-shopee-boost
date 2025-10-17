@@ -23,14 +23,14 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border p-6">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <img
             src="/insight-logo.png"
             alt="Insight Market logo"
-            className="h-8 w-8 rounded-lg object-contain"
+            className="h-20 w-40 rounded-lg object-contain"
           />
           <div>
-            <h2 className="text-lg font-bold text-sidebar-foreground">INSIGHT MARKET</h2>
+            <h2 className="text-lg font-bold text-sidebar-foreground"></h2>
             <p className="text-xs text-sidebar-foreground/60">Gestão Inteligente</p>
           </div>
         </div>
