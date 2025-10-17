@@ -1,5 +1,14 @@
-import { Package, AlertTriangle, TrendingDown, Clock, FileDown } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Package,
+  AlertTriangle,
+  TrendingDown,
+  TrendingUp,
+  Clock,
+  FileDown,
+  CalendarDays,
+  Flame,
+} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 const mockStockData = [
   {
@@ -99,14 +109,118 @@ const Estoque = () => {
     }
   };
 
-  const getCoverageProgress = (coverage: number) => {
-    if (coverage <= 3) return { value: (coverage / 3) * 100, color: "bg-destructive" };
-    if (coverage <= 7) return { value: 100, color: "bg-warning" };
-    return { value: 100, color: "bg-success" };
+  const getCoverageIndicator = (coverage: number) => {
+    if (coverage <= 3) {
+      return {
+        value: Math.max((coverage / 3) * 100, 8),
+        indicatorClass: "bg-destructive",
+        trackClass: "bg-destructive/20",
+        badgeClass: "bg-destructive/10 text-destructive border border-destructive/20",
+        badgeText: "Ruptura <3d",
+      };
+    }
+    if (coverage <= 7) {
+      return {
+        value: Math.min((coverage / 7) * 100, 100),
+        indicatorClass: "bg-warning",
+        trackClass: "bg-warning/20",
+        badgeClass: "bg-warning/10 text-warning border border-warning/20",
+        badgeText: "Reposição 7d",
+      };
+    }
+    if (coverage <= 15) {
+      return {
+        value: Math.min((coverage / 15) * 100, 100),
+        indicatorClass: "bg-success",
+        trackClass: "bg-success/20",
+        badgeClass: "bg-success/10 text-success border border-success/20",
+        badgeText: "Saudável",
+      };
+    }
+    return {
+      value: 100,
+      indicatorClass: "bg-muted-foreground/70",
+      trackClass: "bg-muted/60",
+      badgeClass: "bg-muted/70 text-muted-foreground border border-muted",
+      badgeText: "Estoque alto",
+    };
   };
+
+  const getRowTone = (status: string) => {
+    switch (status) {
+      case "Crítico":
+        return "border-l-4 border-destructive/60 bg-destructive/5 hover:bg-destructive/10";
+      case "Atenção":
+        return "border-l-4 border-warning/60 bg-warning/5 hover:bg-warning/10";
+      case "Excesso":
+        return "border-l-4 border-secondary/60 bg-secondary/30 hover:bg-secondary/40";
+      default:
+        return "border-l-4 border-primary/40 bg-card hover:bg-primary/5";
+    }
+  };
+
+  const getSuggestedClass = (status: string) => {
+    switch (status) {
+      case "Crítico":
+        return "text-destructive";
+      case "Atenção":
+        return "text-warning";
+      case "Excesso":
+        return "text-muted-foreground line-through";
+      default:
+        return "text-primary";
+    }
+  };
+
+  const capitalizeWords = (value: string) =>
+    value
+      .split(" ")
+      .map((word) =>
+        word
+          .split("-")
+          .map((segment) => (segment ? segment.charAt(0).toUpperCase() + segment.slice(1) : segment))
+          .join("-"),
+      )
+      .join(" ");
+
+  const longDateFormatter = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "long",
+  });
+  const deadlineFormatter = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "long",
+  });
+  const unitsFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
+
+  const formatDeadline = (deadline: string) => capitalizeWords(deadlineFormatter.format(new Date(deadline)));
 
   const criticalProducts = mockStockData.filter((p) => p.status === "Crítico").length;
   const attentionProducts = mockStockData.filter((p) => p.status === "Atenção").length;
+  const urgentRestocks = mockStockData.filter((item) => item.coverage <= 3).length;
+  const moderateRestocks = mockStockData.filter((item) => item.coverage > 3 && item.coverage <= 7).length;
+  const averageCoverage =
+    mockStockData.reduce((acc, item) => acc + item.coverage, 0) / mockStockData.length;
+  const soonestStockout = mockStockData.reduce(
+    (prev, current) => (current.coverage < prev.coverage ? current : prev),
+    mockStockData[0],
+  );
+  const nextDeadlineProduct = mockStockData.reduce(
+    (prev, current) =>
+      new Date(current.deadline) < new Date(prev.deadline) ? current : prev,
+    mockStockData[0],
+  );
+  const highlightRestock = mockStockData.reduce(
+    (prev, current) => (current.suggested > prev.suggested ? current : prev),
+    mockStockData[0],
+  );
+  const totalSuggestedUnits = mockStockData.reduce((acc, item) => acc + item.suggested, 0);
+  const formattedAverageCoverage = averageCoverage.toFixed(1).replace(".", ",");
+  const formattedNextDeadline = capitalizeWords(
+    longDateFormatter.format(new Date(nextDeadlineProduct.deadline)),
+  );
+  const formattedTotalSuggested = unitsFormatter.format(totalSuggestedUnits);
 
   return (
     <div className="min-h-screen bg-background p-8 space-y-8 animate-fade-in">
@@ -245,9 +359,73 @@ const Estoque = () => {
       {/* Stock Projection Table */}
       <Card className="shadow-card animate-slide-up" style={{ animationDelay: "0.2s" }}>
         <CardHeader>
-          <CardTitle>Projeção de Estoque Completa</CardTitle>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-1">
+              <CardTitle>Projeção de Estoque Completa</CardTitle>
+              <CardDescription>
+                {criticalProducts} SKUs críticos • {attentionProducts} em atenção • Próxima ruptura{" "}
+                {formattedNextDeadline}
+              </CardDescription>
+            </div>
+            <Badge
+              variant="outline"
+              className="self-start rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary"
+            >
+              Atualizado há 1 hora
+            </Badge>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-8">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-xl border border-destructive/25 bg-destructive/5 p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                  <Flame className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-destructive/80">
+                    Ruptura iminente
+                  </p>
+                  <p className="text-sm font-semibold text-destructive">
+                    {urgentRestocks} SKUs em menos de 3 dias
+                  </p>
+                  <p className="text-xs text-destructive/70">{soonestStockout.name}</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl border border-primary/25 bg-primary/5 p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <CalendarDays className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary/80">
+                    Próxima ruptura
+                  </p>
+                  <p className="text-sm font-semibold text-primary">{formattedNextDeadline}</p>
+                  <p className="text-xs text-primary/70">{nextDeadlineProduct.name}</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl border border-success/25 bg-success/5 p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success/10 text-success">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-success/80">
+                    Reposição sugerida
+                  </p>
+                  <p className="text-sm font-semibold text-success">
+                    {formattedTotalSuggested} unidades
+                  </p>
+                  <p className="text-xs text-success/70">
+                    Cobertura média de {formattedAverageCoverage} dias • {moderateRestocks} SKUs em observação
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -255,7 +433,7 @@ const Estoque = () => {
                 <TableHead>Produto</TableHead>
                 <TableHead className="text-right">Estoque</TableHead>
                 <TableHead className="text-right">Vendas/Dia</TableHead>
-                <TableHead className="text-right">Cobertura</TableHead>
+                <TableHead className="text-right">Cobertura (dias)</TableHead>
                 <TableHead className="text-right">Qtd. Sugerida</TableHead>
                 <TableHead className="text-right">Data Limite</TableHead>
                 <TableHead className="text-center">Status</TableHead>
@@ -263,24 +441,46 @@ const Estoque = () => {
             </TableHeader>
             <TableBody>
               {mockStockData.map((item) => {
-                const progressData = getCoverageProgress(item.coverage);
+                const coverageIndicator = getCoverageIndicator(item.coverage);
                 return (
-                  <TableRow key={item.sku}>
+                  <TableRow key={item.sku} className={cn("transition-all", getRowTone(item.status))}>
                     <TableCell className="font-mono text-sm">{item.sku}</TableCell>
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell className="text-right">{item.currentStock}</TableCell>
                     <TableCell className="text-right">{item.avgSales}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center gap-2">
-                        <Progress value={progressData.value} className="h-2 w-16" />
-                        <span className="text-sm font-medium">{item.coverage}d</span>
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-foreground">
+                            {item.coverage}d
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "px-2 py-0.5 text-[11px] font-semibold",
+                              coverageIndicator.badgeClass,
+                            )}
+                          >
+                            {coverageIndicator.badgeText}
+                          </Badge>
+                        </div>
+                        <Progress
+                          value={coverageIndicator.value}
+                          className={cn("h-2 w-28", coverageIndicator.trackClass)}
+                          indicatorClassName={coverageIndicator.indicatorClass}
+                        />
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-bold text-primary">
-                      {item.suggested}
+                    <TableCell
+                      className={cn(
+                        "text-right text-base font-semibold",
+                        getSuggestedClass(item.status),
+                      )}
+                    >
+                      {unitsFormatter.format(item.suggested)}
                     </TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">
-                      {new Date(item.deadline).toLocaleDateString("pt-BR")}
+                      {formatDeadline(item.deadline)}
                     </TableCell>
                     <TableCell className="text-center">{getStatusBadge(item.status)}</TableCell>
                   </TableRow>
@@ -288,7 +488,21 @@ const Estoque = () => {
               })}
             </TableBody>
           </Table>
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Package className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary/70">
+                  Maior reposição sugerida
+                </p>
+                <p className="text-sm font-semibold text-primary">
+                  {highlightRestock.name} • {unitsFormatter.format(highlightRestock.suggested)} unid
+                  até {formatDeadline(highlightRestock.deadline)}
+                </p>
+              </div>
+            </div>
             <Button size="lg" className="gradient-primary">
               Gerar Lista de Reposição
             </Button>
