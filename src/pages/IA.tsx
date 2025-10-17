@@ -100,28 +100,9 @@ const IA = () => {
             <h1 className="text-3xl font-bold text-foreground">IA Assistente</h1>
           </div>
           <p className="text-muted-foreground">
-            Pergunte qualquer coisa sobre suas vendas e métricas
+            Peça insights em tempo real sobre suas vendas e métricas
           </p>
         </div>
-
-        {/* Suggested Questions */}
-        {messages.length <= 1 && (
-          <div className="space-y-3 animate-slide-up">
-            <p className="text-sm font-medium text-muted-foreground">Perguntas sugeridas:</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {suggestedQuestions.map((question, idx) => (
-                <Button
-                  key={idx}
-                  variant="outline"
-                  className="justify-start text-left h-auto py-3 px-4"
-                  onClick={() => handleSuggestedQuestion(question)}
-                >
-                  <span className="text-sm">{question}</span>
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Chat Area */}
         <Card className="shadow-elevated animate-slide-up" style={{ animationDelay: "0.1s" }}>
@@ -171,6 +152,33 @@ const IA = () => {
                     </div>
                   </div>
                 ))}
+                {messages.length <= 1 && (
+                  <div className="flex gap-3">
+                    <div className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 gradient-primary text-primary-foreground">
+                      <Bot className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 max-w-[80%] space-y-2">
+                      <div className="rounded-lg p-4 bg-muted text-foreground space-y-3">
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Perguntas sugeridas
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {suggestedQuestions.map((question, idx) => (
+                            <Button
+                              key={idx}
+                              variant="outline"
+                              size="sm"
+                              className="h-auto px-3 py-2 text-xs leading-relaxed justify-start text-left"
+                              onClick={() => handleSuggestedQuestion(question)}
+                            >
+                              {question}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </ScrollArea>
 
