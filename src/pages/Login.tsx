@@ -1,4 +1,6 @@
 import { FormEvent, MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import "./Login.css";
 
 type ToastType = "success" | "error" | "info";
@@ -6,10 +8,13 @@ type ToastType = "success" | "error" | "info";
 const DOTS = 28;
 
 const Login = () => {
+  const navigate = useNavigate();
+  const { signIn, signUp, user, loading } = useAuth();
   const particlesRef = useRef<HTMLDivElement>(null);
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSignUpMode, setIsSignUpMode] = useState(false);
   const [toastState, setToastState] = useState<{
     message: string;
     type: ToastType;
@@ -19,6 +24,13 @@ const Login = () => {
     type: "success",
     visible: false,
   });
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/");
+    }
+  }, [user, loading, navigate]);
 
   const passwordInputType = useMemo(
     () => (passwordVisible ? "text" : "password"),
@@ -73,6 +85,7 @@ const Login = () => {
     const form = event.currentTarget;
     const emailInput = form.elements.namedItem("email") as HTMLInputElement | null;
     const passwordInput = form.elements.namedItem("password") as HTMLInputElement | null;
+    const nameInput = form.elements.namedItem("fullname") as HTMLInputElement | null;
 
     if (!emailInput || !passwordInput) {
       return;
@@ -92,16 +105,40 @@ const Login = () => {
 
     setIsSubmitting(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    try {
+      if (isSignUpMode) {
+        const { error } = await signUp(
+          emailInput.value,
+          passwordInput.value,
+          nameInput?.value
+        );
 
-    const success =
-      emailInput.value === "demo@exemplo.com" && passwordInput.value === "123456";
+        if (error) {
+          if (error.message.includes("already registered")) {
+            showToast("Este e-mail já está cadastrado.", "error");
+          } else {
+            showToast(error.message, "error");
+          }
+        } else {
+          showToast("Cadastro realizado! Verifique seu e-mail.", "success");
+          setTimeout(() => setIsSignUpMode(false), 2000);
+        }
+      } else {
+        const { error } = await signIn(emailInput.value, passwordInput.value);
 
-    if (success) {
-      showToast("Login efetuado! Redirecionando…", "success");
-      // window.location.href = "/dashboard";
-    } else {
-      showToast("Credenciais inválidas. Tente novamente.", "error");
+        if (error) {
+          if (error.message.includes("Invalid login credentials")) {
+            showToast("Credenciais inválidas. Tente novamente.", "error");
+          } else {
+            showToast(error.message, "error");
+          }
+        } else {
+          showToast("Login efetuado! Redirecionando…", "success");
+          setTimeout(() => navigate("/"), 1000);
+        }
+      }
+    } catch (error) {
+      showToast("Erro ao processar solicitação.", "error");
     }
 
     setIsSubmitting(false);
@@ -133,12 +170,44 @@ const Login = () => {
             width={130}
             height={48}
           />
-          <h1 id="title">Bem-vindo(a)</h1>
+          <h1 id="title">{isSignUpMode ? "Criar Conta" : "Bem-vindo(a)"}</h1>
           <p className="sub" id="subtitle">
-            Acesse sua conta para continuar
+            {isSignUpMode
+              ? "Preencha os dados para se cadastrar"
+              : "Acesse sua conta para continuar"}
           </p>
 
           <form id="form" onSubmit={handleSubmit} noValidate>
+            {isSignUpMode && (
+              <div className="field">
+                <svg
+                  className="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
+                  <path
+                    d="M6 21c0-3 2.7-5.5 6-5.5s6 2.5 6 5.5"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  />
+                </svg>
+                <input
+                  id="fullname"
+                  name="fullname"
+                  className="input"
+                  type="text"
+                  placeholder=" "
+                  autoComplete="name"
+                />
+                <label className="label" htmlFor="fullname">
+                  Nome completo (opcional)
+                </label>
+              </div>
+            )}
+
             <div className="field">
               <svg
                 className="icon"
@@ -271,7 +340,13 @@ const Login = () => {
                   strokeLinejoin="round"
                 />
               </svg>
-              {isSubmitting ? "Entrando..." : "Entrar"}
+              {isSubmitting
+                ? isSignUpMode
+                  ? "Cadastrando..."
+                  : "Entrando..."
+                : isSignUpMode
+                ? "Criar Conta"
+                : "Entrar"}
             </button>
 
             <div className="or" aria-hidden="true">
@@ -306,16 +381,16 @@ const Login = () => {
             </div>
 
             <p className="footer">
-              Novo por aqui?{" "}
+              {isSignUpMode ? "Já tem uma conta? " : "Novo por aqui? "}
               <a
                 className="link"
                 href="#cadastro"
                 onClick={(event) => {
                   event.preventDefault();
-                  showToast("Fluxo de cadastro em desenvolvimento.", "info");
+                  setIsSignUpMode(!isSignUpMode);
                 }}
               >
-                Crie sua conta
+                {isSignUpMode ? "Fazer login" : "Crie sua conta"}
               </a>
             </p>
           </form>
